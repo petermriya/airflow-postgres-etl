@@ -1,0 +1,85 @@
+services:
+
+  # ---------------------------------------------------------------------
+  # Postgres #1: Airflow's own internal "metadata" database.
+  # Airflow uses this to keep track of DAGs, task runs, users, etc.
+  # You will not put your own data here.
+  # ---------------------------------------------------------------------
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+  # ---------------------------------------------------------------------
+  # Postgres #2: The "data warehouse" - this is where our ETL pipeline
+  # will load the cleaned CSV data. Exposed on port 5433 on your machine
+  # so you can connect to it with a SQL client if you want to look around.
+  # ---------------------------------------------------------------------
+  postgres_dw:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: dw_user
+      POSTGRES_PASSWORD: dw_password
+      POSTGRES_DB: data_warehouse
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dw_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "dw_user"]
+      interval: 5s
+      retries: 5
+    restart: always
+
+  # ---------------------------------------------------------------------
+  # Airflow 3, running in "standalone" mode. This single command starts
+  # the API server (the UI/webserver), scheduler, DAG processor, and
+  # triggerer, and creates an admin user for you automatically the first
+  # time it runs. It's the simplest way to run Airflow locally - great
+  # for learning and small projects.
+  # ---------------------------------------------------------------------
+  airflow:
+    image: apache/airflow:3.2.2
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres_dw:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      # This creates an Airflow "connection" named postgres_dw automatically,
+      # pointing at the data-warehouse database above. The DAG uses this
+      # connection ID to load data - no manual setup needed in the UI.
+      AIRFLOW_CONN_POSTGRES_DW: "postgresql://dw_user:dw_password@postgres_dw:5432/data_warehouse"
+      # Airflow's built-in, officially-supported way to add extra Python
+      # packages for local dev/testing - it installs them safely without
+      # risking breaking the airflow CLI itself (unlike a hand-rolled
+      # Dockerfile pip install, which can accidentally reinstall a
+      # conflicting version of apache-airflow).
+      _PIP_ADDITIONAL_REQUIREMENTS: |
+        apache-airflow-providers-postgres
+        pandas>=2.2.3
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+    ports:
+      - "8081:8080"
+    command: standalone
+    restart: always
+
+volumes:
+  postgres_data:
+  postgres_dw_data:
