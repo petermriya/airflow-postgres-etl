@@ -1,0 +1,16 @@
+order_id,product,quantity,price,order_date
+1001,Wireless Mouse,2,19.99,2025-06-01
+1002,Mechanical Keyboard,1,89.50,2025-06-01
+1003,USB-C Hub,3,24.75,2025-06-02
+1004,Laptop Stand,1,35.00,2025-06-02
+1005,Webcam HD,,49.99,2025-06-03
+1006,Monitor 24in,2,159.99,2025-06-03
+1007,Desk Lamp,4,15.25,2025-06-04
+1008,Headphones,1,79.99,2025-06-04
+1009,Bluetooth Speaker,2,45.00,2025-06-05
+1010,Wireless Charger,3,22.50,2025-06-05
+1011,Ergonomic Chair,1,249.99,2025-06-06
+1012,Notebook Pack,5,8.99,2025-06-06
+1013,External SSD 1TB,2,109.99,2025-06-07
+1014,Phone Case,6,12.99,2025-06-07
+1015,Ring Light,1,34.50,2025-06-08
